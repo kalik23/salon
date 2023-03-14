@@ -1,26 +1,33 @@
 #!/bin/bash
-PSQL="psql --username=freecodecamp --dbname=salon --tuples-only  -c"
+PSQL="psql -X --username=freecodecamp --dbname=salon --tuples-only  -c"
 
 MAIN_MENU() {
   if [[ $1 ]]
   then 
     echo -e "\n$1"
   fi
-  echo "In which services are you interested in:"
-  SERVICE_ID_MAX=$($PSQL "select max(service_id) from services")
-  SERVICE_ID=$($PSQL "select service_id from services order by service_id limit 1")
-  I=1
-  while [[ $SERVICE_ID -lt $SERVICE_ID_MAX ]]
+  
+  ##SERVICE_ID_MAX=$($PSQL "select max(service_id) from services")
+  ##SERVICE_ID=$($PSQL "select service_id from services order by service_id limit 1")
+  ##I=1
+  SERVICES=$($PSQL "select service_id, name from services order by service_id")
+  echo "$SERVICES" | while IFS=" | " read SERVICE_ID SERVICE_NAME
   do
-  SERVICE_ID=$($PSQL "select service_id from services where service_id=$I")
-  SERVICE_NAME=$($PSQL "select name from services where service_id=$I")
-  #SERVICE_NAME_FORMATTED=$(echo $SERVICE_NAME | sed 's/ //')
-  echo -e $SERVICE_ID\) $SERVICE_NAME #_FORMATTED
-  I=$(($I+1))
+    echo -e "$SERVICE_ID) "$SERVICE_NAME""
   done
-  echo "$I) Exit"
-  read SERVICE_ID_SELECTED
 
+
+      #while [[ $SERVICE_ID -lt $SERVICE_ID_MAX ]]
+      #do
+      #SERVICE_ID=$($PSQL "select service_id from services where service_id=$I")
+      #SERVICE_NAME=$($PSQL "select name from services where service_id=$I")
+      #SERVICE_NAME_FORMATTED=$(echo $SERVICE_NAME | sed 's/ //')
+      #echo -e $SERVICE_ID\) $SERVICE_NAME #_FORMATTED
+      #I=$(($I+1))
+      #done
+      #echo "$I) Exit"
+  read SERVICE_ID_SELECTED
+  
   
   if [[ $SERVICE_ID_SELECTED = $I ]]
   then 
@@ -33,7 +40,7 @@ MAIN_MENU() {
 
     if [[ -z $SERVICE_ID ]]
     then
-      MAIN_MENU "This service does not exist, please try again."
+      MAIN_MENU "I could not find that service. What would you like today?"
     else
       MAKE_APPOINTMENTS
     fi
@@ -45,15 +52,14 @@ MAIN_MENU() {
 MAKE_APPOINTMENTS() {
   CHOSEN_SERVICE_NAME=$($PSQL "select name from services where service_id=$SERVICE_ID_SELECTED") 
  
-  echo You chose the service $CHOSEN_SERVICE_NAME
-  echo "Enter phone number"
+  echo -e "\nWhat's your phone number?"
   read CUSTOMER_PHONE
   # check if customer not already in database
   CUSTOMER_ID=$($PSQL "Select customer_id from customers where phone='$CUSTOMER_PHONE' ")
   # if customer not in database, ask all possible questions
   if [[ -z $CUSTOMER_ID ]]
   then
-    echo "Enter name"
+    echo -e "\nI don't have a record for that phone number, what's your name?"
     read CUSTOMER_NAME
     # insert in database
     INSERT_CUSTOMER=$($PSQL "insert into customers (phone, name) values ('$CUSTOMER_PHONE', '$CUSTOMER_NAME')")
@@ -61,17 +67,17 @@ MAKE_APPOINTMENTS() {
     # if customer already in database 
   fi
   CUSTOMER_NAME=$($PSQL "select name from customers where phone='$CUSTOMER_PHONE' ")
-  echo -e "\nWelcome$CUSTOMER_NAME"
-  echo "Enter your preferred time"
+  echo -e "\nWhat time would you like your$CHOSEN_SERVICE_NAME,$CUSTOMER_NAME?"
   read SERVICE_TIME
   INSERT_APPOINTMENT=$($PSQL "Insert into appointments (customer_id, service_id, time) values ($CUSTOMER_ID, $SERVICE_ID, '$SERVICE_TIME') ")
-  echo -e "\nI have put you down for a$SERVICE_NAME at $SERVICE_TIME,$CUSTOMER_NAME."
+  echo -e "\nI have put you down for a$CHOSEN_SERVICE_NAME at $SERVICE_TIME,$CUSTOMER_NAME."
       
 }
 
 EXIT() {
   echo "Thanks for using our app!"
 }
-echo -e "\n~~~ Welcome to The Salon ~~~"
+echo -e "\n~~~~~ MY SALON ~~~~~"
+echo -e "\nWelcome to My Salon, how can I help you?\n"
 MAIN_MENU
 
